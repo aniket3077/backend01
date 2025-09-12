@@ -47,8 +47,7 @@ router.get('/status', (req, res) => {
             testMode: process.env.RAZORPAY_KEY_ID?.includes('test') || process.env.RAZORPAY_KEY_ID === 'your_razorpay_key_id_here'
           }
         }
-      },
-      environment: process.env.NODE_ENV || 'development'
+      }
     };
 
     res.json({
