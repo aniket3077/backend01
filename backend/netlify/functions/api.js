@@ -1,14 +1,13 @@
 const express = require("express");
+const serverless = require("serverless-http");
 const bodyParser = require("body-parser");
-const { testConnection } = require('./config/database');
+const { testConnection } = require('../../config/database');
 const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 
 // Global BigInt JSON serialization fix
 BigInt.prototype.toJSON = function() { return this.toString(); };
-
-console.log("🚀 Starting Dandiya Platform Backend...");
 
 const app = express();
 
@@ -75,27 +74,12 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  console.error('Stack:', err.stack);
-  // Keep server running; consider alerting/metrics here
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Keep server running; consider alerting/metrics here
-});
-
-console.log("✅ Basic Express setup complete");
-
 // Import controllers
-const bookingController = require("./controllers/bookingController");
+const bookingController = require("../../controllers/bookingController");
 
 // Import routes
 try {
-  const configRoutes = require("./routes/configRoutes");
+  const configRoutes = require("../../routes/configRoutes");
   app.use("/api/config", configRoutes);
   console.log("✅ Config routes loaded");
 } catch (err) {
@@ -104,7 +88,7 @@ try {
 
 // Admin routes
 try {
-  const adminRoutes = require("./routes/adminRoutes");
+  const adminRoutes = require("../../routes/adminRoutes");
   app.use("/api/admin", adminRoutes);
   console.log("✅ Admin routes loaded");
 } catch (err) {
@@ -113,7 +97,7 @@ try {
 
 // Auth routes
 try {
-  const authRoutes = require("./routes/authRoutes");
+  const authRoutes = require("../../routes/authRoutes");
   app.use("/api/auth", authRoutes);
   console.log("✅ Auth routes loaded");
 } catch (err) {
@@ -122,7 +106,7 @@ try {
 
 // QR routes
 try {
-  const qrRoutes = require("./routes/qrRoutes");
+  const qrRoutes = require("../../routes/qrRoutes");
   app.use("/api/qr", qrRoutes);
   console.log("✅ QR routes loaded");
 } catch (err) {
@@ -148,10 +132,21 @@ console.log("✅ Booking routes loaded");
 app.get("/api/health", (req, res) => {
   res.json({ 
     status: "healthy", 
-    message: "Dandiya Platform Backend is running",
+    message: "Dandiya Platform Backend is running on Netlify Functions",
     timestamp: new Date().toISOString(),
     node_env: process.env.NODE_ENV || 'development',
+    platform: 'netlify-functions',
     qr_pdf_fixed: true
+  });
+});
+
+// Root health check
+app.get("/", (req, res) => {
+  res.json({ 
+    status: "healthy", 
+    message: "Dandiya Platform Backend is running on Netlify Functions",
+    timestamp: new Date().toISOString(),
+    platform: 'netlify-functions'
   });
 });
 
@@ -165,7 +160,7 @@ app.post("/api/test-qr-pdf", async (req, res) => {
   try {
     console.log("🧪 Testing QR PDF generation...");
     
-    const { generateTicketPDFBuffer } = require("./utils/pdfGenerator");
+    const { generateTicketPDFBuffer } = require("../../utils/pdfGenerator");
     
     const testData = {
       name: "Test User",
@@ -194,15 +189,6 @@ app.post("/api/test-qr-pdf", async (req, res) => {
   }
 });
 
-// Static files for tickets
-try {
-  const ticketsDir = path.join(__dirname, "tickets");
-  app.use("/tickets", express.static(ticketsDir));
-  console.log("✅ Tickets static folder configured");
-} catch (err) {
-  console.log("⚠️ Tickets folder not found, skipping static files...");
-}
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("💥 Unhandled error:", err.stack);
@@ -220,7 +206,7 @@ app.use((req, res) => {
     error: "Endpoint not found",
     path: req.path,
     available_endpoints: [
-      'GET /health',
+      'GET /',
       'GET /api/health',
       'POST /api/test-qr-pdf',
       'POST /api/bookings/create',
@@ -239,24 +225,5 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`🎉 Server running on port ${PORT}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 Network access: http://192.168.197.189:${PORT}/health`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 Network access: http://192.168.197.189:${PORT}/api/health`);
-  console.log(`🧪 Test QR PDF: http://localhost:${PORT}/api/test-qr-pdf`);
-  console.log(`📋 Booking API: http://localhost:${PORT}/api/bookings`);
-  
-  // Test database connection
-  const dbConnected = await testConnection();
-  if (dbConnected) {
-    console.log(`🌟 Backend is ready with Supabase database connection!`);
-  } else {
-    console.log(`⚠️ Backend started but database connection failed`);
-  }
-});
-
-module.exports = app;
+// Export the serverless function
+module.exports.handler = serverless(app);

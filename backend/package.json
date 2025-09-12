@@ -8,8 +8,9 @@
     "dev": "node server.js",
     "prod": "NODE_ENV=production node server.js",
     "test-cloudinary": "node test-cloudinary.js",
-    "build": "echo 'Build completed'",
-    "vercel-build": "echo 'Build completed'"
+    "build": "mkdir -p dist && echo 'Build completed for Netlify'",
+    "vercel-build": "echo 'Build completed'",
+    "netlify-build": "npm run build"
   },
   "keywords": [],
   "author": "",
@@ -39,6 +40,7 @@
     "qrcode-terminal": "^0.12.0",
     "razorpay": "^2.9.6",
     "resend": "^6.0.3",
+    "serverless-http": "^3.2.0",
     "twilio": "^5.9.0",
     "uuid": "^13.0.0",
     "whatsapp-web.js": "^1.33.2"
