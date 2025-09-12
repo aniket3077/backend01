@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "prod": "NODE_ENV=production node server.js",
     "test-cloudinary": "node test-cloudinary.js",
+    "build": "echo 'Build completed'",
     "vercel-build": "echo 'Build completed'"
   },
   "keywords": [],
