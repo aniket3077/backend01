@@ -116,14 +116,41 @@ app.use("/api/bookings", bookingRoutes);
 console.log("✅ Booking routes loaded");
 
 // Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({ 
-    status: "healthy", 
-    message: "Dandiya Platform Backend is running on Vercel",
-    timestamp: new Date().toISOString(),
-    node_env: process.env.NODE_ENV || 'development',
-    platform: 'vercel'
-  });
+app.get("/api/health", async (req, res) => {
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    
+    // Check AI Sensy configuration
+    const whatsappService = require("./services/whatsappService");
+    const aiSensyConfigured = !!(process.env.AISENSY_API_KEY && process.env.AISENSY_API_KEY !== 'your_aisensy_api_key_here');
+    
+    res.json({ 
+      status: "healthy", 
+      message: "Dandiya Platform Backend is running on Vercel",
+      timestamp: new Date().toISOString(),
+      node_env: process.env.NODE_ENV || 'development',
+      platform: 'vercel',
+      services: {
+        database: {
+          connected: dbConnected,
+          status: dbConnected ? 'operational' : 'error'
+        },
+        whatsapp_aisensy: {
+          configured: aiSensyConfigured,
+          api_key_present: !!process.env.AISENSY_API_KEY,
+          status: aiSensyConfigured ? 'operational' : 'not_configured'
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Health check failed",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Root health check
@@ -141,7 +168,53 @@ app.get("/favicon.ico", (req, res) => {
   res.status(204).send();
 });
 
-// Test endpoint for QR PDF generation
+// Test endpoint for AI Sensy WhatsApp service
+app.post("/api/test-aisensy", async (req, res) => {
+  try {
+    console.log("🧪 Testing AI Sensy WhatsApp service...");
+    
+    const whatsappService = require("./services/whatsappService");
+    
+    // Check configuration
+    const isConfigured = !!(process.env.AISENSY_API_KEY && process.env.AISENSY_API_KEY !== 'your_aisensy_api_key_here');
+    
+    if (!isConfigured) {
+      return res.json({
+        success: false,
+        configured: false,
+        message: "AI Sensy not configured - set AISENSY_API_KEY environment variable",
+        mock_response: "Would send WhatsApp message in production",
+        status: "not_configured"
+      });
+    }
+    
+    // Test with a sample phone number (or use from request body)
+    const { phoneNumber = "919999999999", message = "Test message from Dandiya Platform backend" } = req.body;
+    
+    const result = await whatsappService.sendTextMessage(phoneNumber, message);
+    
+    res.json({
+      success: result.success,
+      configured: true,
+      test_result: result,
+      api_endpoint: "https://backend.aisensy.com/campaign/t1/api/v2",
+      timestamp: new Date().toISOString(),
+      status: result.success ? "operational" : "error"
+    });
+    
+    console.log("✅ AI Sensy test completed:", result.success ? "SUCCESS" : "FAILED");
+    
+  } catch (error) {
+    console.error("❌ AI Sensy test failed:", error);
+    res.status(500).json({ 
+      success: false,
+      configured: !!process.env.AISENSY_API_KEY,
+      error: "AI Sensy test failed", 
+      details: error.message,
+      status: "error"
+    });
+  }
+});
 app.post("/api/test-qr-pdf", async (req, res) => {
   try {
     console.log("🧪 Testing QR PDF generation...");
