@@ -12,10 +12,7 @@
   to = "/.netlify/functions/api/:splat"
   status = 200
 
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/api"
-  status = 200
+# Remove the catch-all redirect that was interfering with CORS
 
 [build.environment]
   NODE_VERSION = "18"
