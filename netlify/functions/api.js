@@ -211,16 +211,16 @@ app.use((req, res) => {
   });
 });
 
-// Export the serverless function with proper CORS handling
-const serverlessHandler = serverless(app);
-
+// Export handler with CORS-first approach
 module.exports.handler = async (event, context) => {
   // Get the origin from the request
   const origin = event.headers.origin || event.headers.Origin;
+  console.log('=== CORS DEBUG ===');
   console.log('Request origin:', origin);
   console.log('Request method:', event.httpMethod);
+  console.log('Request path:', event.path);
   
-  // Define CORS headers
+  // CORS headers that will be applied to ALL responses
   const corsHeaders = {
     'Access-Control-Allow-Origin': 'https://malangevents.com',
     'Access-Control-Allow-Credentials': 'true',
@@ -228,9 +228,9 @@ module.exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
   };
   
-  // Handle preflight OPTIONS requests
+  // Handle preflight OPTIONS requests FIRST - don't pass to Express
   if (event.httpMethod === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
+    console.log('Handling OPTIONS preflight - returning CORS headers directly');
     return {
       statusCode: 200,
       headers: corsHeaders,
@@ -238,17 +238,26 @@ module.exports.handler = async (event, context) => {
     };
   }
   
-  // Process the actual request
-  const response = await serverlessHandler(event, context);
-  
-  // Ensure CORS headers are always included in the response
-  if (origin === 'https://malangevents.com') {
+  // For non-OPTIONS requests, process through Express but ensure CORS headers
+  try {
+    const serverlessHandler = serverless(app);
+    const response = await serverlessHandler(event, context);
+    
+    // Force CORS headers on all responses
     response.headers = {
       ...response.headers,
       ...corsHeaders
     };
+    
+    console.log('Final response headers:', JSON.stringify(response.headers, null, 2));
+    return response;
+    
+  } catch (error) {
+    console.error('Error in serverless handler:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Internal server error' })
+    };
   }
-  
-  console.log('Response headers:', response.headers);
-  return response;
 };
