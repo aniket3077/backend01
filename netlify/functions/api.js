@@ -232,5 +232,38 @@ app.use((req, res) => {
   });
 });
 
-// Export the serverless function
-module.exports.handler = serverless(app);
+// Export the serverless function with CORS wrapper
+const serverlessHandler = serverless(app);
+
+module.exports.handler = async (event, context) => {
+  // Add CORS headers for Netlify Functions
+  const response = await serverlessHandler(event, context);
+  
+  const origin = event.headers.origin || event.headers.Origin;
+  
+  if (origin === 'https://malangevents.com') {
+    response.headers = {
+      ...response.headers,
+      'Access-Control-Allow-Origin': 'https://malangevents.com',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+    };
+  }
+  
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'https://malangevents.com',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+      },
+      body: ''
+    };
+  }
+  
+  return response;
+};
