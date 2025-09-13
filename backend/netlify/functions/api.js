@@ -16,6 +16,8 @@ app.use(cors({
   origin: [
     // Production frontend
     'https://malangrasdandiya.netlify.app',
+    // Add your actual frontend domain here when you deploy it
+    // 'https://your-frontend-domain.netlify.app',
     // Local development
     'http://localhost:3000',
     'http://localhost:3001', 
