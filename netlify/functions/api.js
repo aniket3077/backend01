@@ -11,26 +11,9 @@ BigInt.prototype.toJSON = function() { return this.toString(); };
 
 const app = express();
 
-// Netlify Functions specific CORS middleware
-app.use((req, res, next) => {
-  // Set CORS headers for all responses
-  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins for now
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight OPTIONS requests
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  
-  next();
-});
-
-// Enhanced CORS configuration for frontend development and production
+// Enhanced CORS configuration - only allow malangevents.com
 app.use(cors({
-  origin: true, // Allow all origins temporarily for testing
+  origin: 'https://malangevents.com',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],

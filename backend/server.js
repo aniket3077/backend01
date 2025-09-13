@@ -12,38 +12,9 @@ console.log("🚀 Starting Dandiya Platform Backend...");
 
 const app = express();
 
-// Enhanced CORS configuration for frontend development and production
+// Enhanced CORS configuration - only allow malangevents.com
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://malangrasdandiya.netlify.app',
-      'https://malangevents.com',
-      'https://www.malangevents.com',
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://localhost:5173',
-      'http://localhost:19006',
-      'exp://192.168.39.39:8081',
-      'exp://10.0.2.2:8081',
-      'http://10.0.2.2:8081',
-      'http://192.168.39.39:8081',
-      'exp://192.168.6.70:19000',
-      'exp://192.168.73.189:19000',
-      'exp://192.168.162.189:19000',
-      'exp://192.168.197.189:8081',
-      'http://192.168.197.189:8081'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: 'https://malangevents.com',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
