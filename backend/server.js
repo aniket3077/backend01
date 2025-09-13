@@ -15,8 +15,10 @@ const app = express();
 // Enhanced CORS configuration for frontend development and production
 app.use(cors({
   origin: [
-    // Production frontend
+    // Production frontends
     'https://malangrasdandiya.netlify.app',
+    'https://malangevents.com',
+    'https://www.malangevents.com',
     // Local development
     'http://localhost:3000',
     'http://localhost:3001', 
