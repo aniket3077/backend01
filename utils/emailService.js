@@ -1,6 +1,6 @@
 ﻿const { sendTicketEmail: sendResend, isResendConfigured } = require('./resendEmailService');
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,

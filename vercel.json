@@ -18,7 +18,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://malangevents.com"
+          "value": "https://malangevents.com,https://malangrasdandiya.netlify.app/"
         },
         {
           "key": "Access-Control-Allow-Methods",

@@ -1,5 +1,5 @@
 const { Resend } = require('resend');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 // Initialize Resend client with better error handling
 let resend = null;
