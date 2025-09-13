@@ -11,37 +11,16 @@ BigInt.prototype.toJSON = function() { return this.toString(); };
 
 const app = express();
 
-// First - Custom CORS middleware for Netlify Functions
+// Simple CORS middleware for Express (backup)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log('Request origin:', origin);
-  
-  if (origin === 'https://malangevents.com') {
-    res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  }
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
+  res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   next();
 });
 
-// Enhanced CORS configuration - only allow malangevents.com
-app.use(cors({
-  origin: 'https://malangevents.com',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  optionsSuccessStatus: 200
-}));
-
-// Explicit OPTIONS handling for all routes
-app.options('*', cors());
+// Remove explicit OPTIONS handling since we handle it in the main handler
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -232,38 +211,44 @@ app.use((req, res) => {
   });
 });
 
-// Export the serverless function with CORS wrapper
+// Export the serverless function with proper CORS handling
 const serverlessHandler = serverless(app);
 
 module.exports.handler = async (event, context) => {
-  // Add CORS headers for Netlify Functions
-  const response = await serverlessHandler(event, context);
-  
+  // Get the origin from the request
   const origin = event.headers.origin || event.headers.Origin;
+  console.log('Request origin:', origin);
+  console.log('Request method:', event.httpMethod);
   
-  if (origin === 'https://malangevents.com') {
-    response.headers = {
-      ...response.headers,
-      'Access-Control-Allow-Origin': 'https://malangevents.com',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-    };
-  }
+  // Define CORS headers
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': 'https://malangevents.com',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+  };
   
-  // Handle preflight requests
+  // Handle preflight OPTIONS requests
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': 'https://malangevents.com',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-      },
+      headers: corsHeaders,
       body: ''
     };
   }
   
+  // Process the actual request
+  const response = await serverlessHandler(event, context);
+  
+  // Ensure CORS headers are always included in the response
+  if (origin === 'https://malangevents.com') {
+    response.headers = {
+      ...response.headers,
+      ...corsHeaders
+    };
+  }
+  
+  console.log('Response headers:', response.headers);
   return response;
 };
