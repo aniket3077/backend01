@@ -7,12 +7,7 @@
   node_bundler = "esbuild"
   external_node_modules = ["@react-email/render"]
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-
-# Remove the catch-all redirect that was interfering with CORS
+# Temporarily removing all redirects to test direct function access
 
 [build.environment]
   NODE_VERSION = "18"
