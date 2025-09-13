@@ -23,6 +23,18 @@ app.use(cors({
 // Explicit OPTIONS handling for all routes
 app.options('*', cors());
 
+// Additional CORS middleware for Netlify Functions
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin === 'https://malangevents.com') {
+    res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  next();
+});
+
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
