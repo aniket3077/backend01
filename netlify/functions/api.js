@@ -11,6 +11,26 @@ BigInt.prototype.toJSON = function() { return this.toString(); };
 
 const app = express();
 
+// First - Custom CORS middleware for Netlify Functions
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log('Request origin:', origin);
+  
+  if (origin === 'https://malangevents.com') {
+    res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Enhanced CORS configuration - only allow malangevents.com
 app.use(cors({
   origin: 'https://malangevents.com',
@@ -22,18 +42,6 @@ app.use(cors({
 
 // Explicit OPTIONS handling for all routes
 app.options('*', cors());
-
-// Additional CORS middleware for Netlify Functions
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin === 'https://malangevents.com') {
-    res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
-  }
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  next();
-});
 
 // Add request logging middleware
 app.use((req, res, next) => {
