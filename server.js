@@ -1,26 +1,34 @@
 const express = require("express");
-const serverless = require("serverless-http");
-const bodyParser = require("body-parser");
-const { testConnection } = require('../../config/database');
 const cors = require("cors");
-const path = require("path");
+const { testConnection } = require('./config/database');
 require("dotenv").config();
 
 // Global BigInt JSON serialization fix
 BigInt.prototype.toJSON = function() { return this.toString(); };
 
+console.log("🚀 Starting Dandiya Platform Backend on Vercel...");
+
 const app = express();
 
-// Simple CORS middleware for Express (backup)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://malangevents.com');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  next();
-});
+// Enhanced CORS configuration for Vercel
+app.use(cors({
+  origin: [
+    'https://malangevents.com',
+    'https://www.malangevents.com',
+    'http://localhost:3000',  // for local development
+    'http://localhost:5173'   // for Vite dev server
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
 
-// Remove explicit OPTIONS handling since we handle it in the main handler
+// Handle preflight requests explicitly
+app.options("*", cors());
+
+// Enhanced JSON parsing with error handling
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -31,14 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enhanced JSON parsing with error handling
-app.use(express.json({ 
-  limit: '50mb'
-}));
-
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Global error handler for JSON parsing and other errors
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.message);
   
@@ -50,7 +51,6 @@ app.use((err, req, res, next) => {
     });
   }
   
-  // Don't crash the server on errors
   if (!res.headersSent) {
     res.status(500).json({ 
       success: false, 
@@ -60,12 +60,14 @@ app.use((err, req, res, next) => {
   }
 });
 
+console.log("✅ Basic Express setup complete");
+
 // Import controllers
-const bookingController = require("../../controllers/bookingController");
+const bookingController = require("./controllers/bookingController");
 
 // Import routes
 try {
-  const configRoutes = require("../../routes/configRoutes");
+  const configRoutes = require("./routes/configRoutes");
   app.use("/api/config", configRoutes);
   console.log("✅ Config routes loaded");
 } catch (err) {
@@ -74,7 +76,7 @@ try {
 
 // Admin routes
 try {
-  const adminRoutes = require("../../routes/adminRoutes");
+  const adminRoutes = require("./routes/adminRoutes");
   app.use("/api/admin", adminRoutes);
   console.log("✅ Admin routes loaded");
 } catch (err) {
@@ -83,7 +85,7 @@ try {
 
 // Auth routes
 try {
-  const authRoutes = require("../../routes/authRoutes");
+  const authRoutes = require("./routes/authRoutes");
   app.use("/api/auth", authRoutes);
   console.log("✅ Auth routes loaded");
 } catch (err) {
@@ -92,17 +94,16 @@ try {
 
 // QR routes
 try {
-  const qrRoutes = require("../../routes/qrRoutes");
+  const qrRoutes = require("./routes/qrRoutes");
   app.use("/api/qr", qrRoutes);
   console.log("✅ QR routes loaded");
 } catch (err) {
   console.log("⚠️ QR routes not found, skipping...");
 }
 
-// Booking routes (inline definition since bookingRoutes.js might not exist)
+// Booking routes
 const bookingRoutes = express.Router();
 
-// Booking endpoints
 bookingRoutes.post("/create", bookingController.createBooking);
 bookingRoutes.post("/add-users", bookingController.addUserDetails);
 bookingRoutes.post("/create-payment", bookingController.createPayment);
@@ -118,11 +119,10 @@ console.log("✅ Booking routes loaded");
 app.get("/api/health", (req, res) => {
   res.json({ 
     status: "healthy", 
-    message: "Dandiya Platform Backend is running on Netlify Functions",
+    message: "Dandiya Platform Backend is running on Vercel",
     timestamp: new Date().toISOString(),
     node_env: process.env.NODE_ENV || 'development',
-    platform: 'netlify-functions',
-    qr_pdf_fixed: true
+    platform: 'vercel'
   });
 });
 
@@ -130,15 +130,15 @@ app.get("/api/health", (req, res) => {
 app.get("/", (req, res) => {
   res.json({ 
     status: "healthy", 
-    message: "Dandiya Platform Backend is running on Netlify Functions",
+    message: "Dandiya Platform Backend is running on Vercel",
     timestamp: new Date().toISOString(),
-    platform: 'netlify-functions'
+    platform: 'vercel'
   });
 });
 
 // Handle favicon requests
 app.get("/favicon.ico", (req, res) => {
-  res.status(204).send(); // No Content
+  res.status(204).send();
 });
 
 // Test endpoint for QR PDF generation
@@ -146,7 +146,7 @@ app.post("/api/test-qr-pdf", async (req, res) => {
   try {
     console.log("🧪 Testing QR PDF generation...");
     
-    const { generateTicketPDFBuffer } = require("../../utils/pdfGenerator");
+    const { generateTicketPDFBuffer } = require("./utils/pdfGenerator");
     
     const testData = {
       name: "Test User",
@@ -211,53 +211,5 @@ app.use((req, res) => {
   });
 });
 
-// Export handler with CORS-first approach
-module.exports.handler = async (event, context) => {
-  // Get the origin from the request
-  const origin = event.headers.origin || event.headers.Origin;
-  console.log('=== CORS DEBUG ===');
-  console.log('Request origin:', origin);
-  console.log('Request method:', event.httpMethod);
-  console.log('Request path:', event.path);
-  
-  // CORS headers that will be applied to ALL responses
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': 'https://malangevents.com',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-  };
-  
-  // Handle preflight OPTIONS requests FIRST - don't pass to Express
-  if (event.httpMethod === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight - returning CORS headers directly');
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: ''
-    };
-  }
-  
-  // For non-OPTIONS requests, process through Express but ensure CORS headers
-  try {
-    const serverlessHandler = serverless(app);
-    const response = await serverlessHandler(event, context);
-    
-    // Force CORS headers on all responses
-    response.headers = {
-      ...response.headers,
-      ...corsHeaders
-    };
-    
-    console.log('Final response headers:', JSON.stringify(response.headers, null, 2));
-    return response;
-    
-  } catch (error) {
-    console.error('Error in serverless handler:', error);
-    return {
-      statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
-  }
-};
+// For Vercel, we export the app
+module.exports = app;
